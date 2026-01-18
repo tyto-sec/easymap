@@ -32,7 +32,7 @@ print_header() {
 
     local c1=$PINK; local c2=$RED; local c3=$ORANGE; local c4=$BLUE; local c5=$YELLOW; local c6=$PURPLE; local reset=$NO_COLOR
     if [ "$DISABLE_COLOR" = "true"  ]; then
-        c1=""; c2=""; c3=""; c4=""; c5=""; reset=""
+        c1=""; c2=""; c3=""; c4=""; c5=""; c6=""; reset=""
     fi
 
     printf "${c6}#######################################################################${reset}\n\n"
@@ -119,7 +119,7 @@ host_discovery() {
         if [[ "$DISABLE_COLOR" != "true" ]]; then
             echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid target format '$TARGET'."
         else
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid target format '$TARGET'."
+            echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid target format '$TARGET'."
         fi
         exit 1
     elif [ "$TARGET_TYPE" == "network_range" ]; then
@@ -133,14 +133,14 @@ host_discovery() {
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Starting host discovery on network range: ${GREEN}$NETWORK${NO_COLOR}\n"
             else
-                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting host discovery on network range: $NETWORK\n"
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Starting host discovery on network range: $NETWORK\n"
             fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
             
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
             else
-                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+                echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
             fi
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
@@ -160,14 +160,14 @@ host_discovery() {
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Performing host discovery on single IP: ${GREEN}$SINGLE_IP${NO_COLOR}\n"
             else
-                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP\n"
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP\n"
             fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
         
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
             else
-                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+                echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
             fi
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
@@ -187,14 +187,14 @@ host_discovery() {
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Performing host discovery on IP list: ${GREEN}$IP_LIST${NO_COLOR}\n"
             else
-                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST\n"
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST\n"
             fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
         
             if [[ "$DISABLE_COLOR" != "true" ]]; then
                 echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
             else
-                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+                echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
             fi
         
         else
@@ -212,16 +212,15 @@ port_scan(){
     OUTPUT_DIR="$3"
     SILENT="$4"
     HOSTS_FILE_BASENAME="$(basename "$HOSTS_FILE")"
-    HOSTS_FILE_NAME="${HOSTS_FILE_BASENAME%%_*}"
+    HOSTS_FILE_NAME=$(echo "$HOSTS_FILE_BASENAME" | sed 's/_[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}_live_hosts\.txt$//')
     DATE="$(date -I)"
     FILENAME_PREFIX="${OUTPUT_DIR}/${HOSTS_FILE_NAME}_${DATE}"
-    FILENAME="${FILENAME_PREFIX}_nmap_port_scan.xml"
 
     if [[ ! -f "$HOSTS_FILE" ]]; then
         if [[ "$DISABLE_COLOR" != "true" ]]; then
-            echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid hosts file '$HOSTS_FILE'."
+            echo -e "\n${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid hosts file '$HOSTS_FILE'."
         else
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid hosts file '$HOSTS_FILE'."
+            echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid hosts file '$HOSTS_FILE'."
         fi
         exit 1
     fi
@@ -253,8 +252,8 @@ port_scan(){
                 echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid mode '$MODE'"
                 echo -e "${YELLOW}Valid modes:${NO_COLOR} paranoid, slow, default, fast, aggressive"
             else
-                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
-                echo "Valid modes: paranoid, slow, default, fast, aggressive"
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
+                echo  "Valid modes: paranoid, slow, default, fast, aggressive"
             fi
             exit 1
         fi
@@ -265,17 +264,17 @@ port_scan(){
         if [[ "$DISABLE_COLOR" != "true" ]]; then
             echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Starting port scan in ${GREEN}$MODE${NO_COLOR} mode on hosts from file: ${GREEN}$HOSTS_FILE${NO_COLOR}\n"
         else
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting port scan in $MODE mode on hosts from file: $HOSTS_FILE\n"
+            echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Starting port scan in $MODE mode on hosts from file: $HOSTS_FILE\n"
         fi
         nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE"
+
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting open ports to ${GREEN}${FILENAME_PREFIX}_open_ports.txt${NO_COLOR}\n"
+        else
+            echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting open ports to ${FILENAME_PREFIX}_open_ports.txt\n"    
+        fi
     else
         nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE" >/dev/null 2>&1
-    fi
-
-    if [[ "$DISABLE_COLOR" != "true" ]]; then
-        echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting open ports to ${GREEN}${FILENAME_PREFIX}_open_ports.txt${NO_COLOR}\n"
-    else
-        echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting open ports to ${FILENAME_PREFIX}_open_ports.txt\n"    
     fi
 
     xmlstarlet sel -t \
@@ -305,12 +304,179 @@ get_live_hosts_file() {
     echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_live_hosts.txt"
 }
 
+get_port_scan_file() {
+    local TARGET=$1
+    local OUTPUT=$2
+    local DATE="$(date -I)"
+    local TARGET_TYPE=$(validate_target_type "$TARGET")
+    local NETWORK_NAME=""
+    
+    if [ "$TARGET_TYPE" == "network_range" ]; then
+        NETWORK_NAME="${TARGET%%/*}"
+    elif [ "$TARGET_TYPE" == "single_ip" ]; then
+        NETWORK_NAME="$TARGET"
+    elif [ "$TARGET_TYPE" == "ip_list" ]; then
+        NETWORK_NAME="ip_list"
+    fi
+    
+    echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_nmap_port_discovery.xml"
+}
+
+get_open_ports_file() {
+    local TARGET=$1
+    local OUTPUT=$2
+    local DATE="$(date -I)"
+    local TARGET_TYPE=$(validate_target_type "$TARGET")
+    local NETWORK_NAME=""
+    
+    if [ "$TARGET_TYPE" == "network_range" ]; then
+        NETWORK_NAME="${TARGET%%/*}"
+    elif [ "$TARGET_TYPE" == "single_ip" ]; then
+        NETWORK_NAME="$TARGET"
+    elif [ "$TARGET_TYPE" == "ip_list" ]; then
+        NETWORK_NAME="ip_list"
+    fi
+    
+    echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_open_ports.txt"
+}
+
+version_scan(){
+    OPEN_PORTS_FILE="$1"
+    MODE="$2"
+    OUTPUT="$3"
+    DATE="$(date -I)"
+    RESULTS_DIR=$OUTPUT
+    OPEN_PORTS_BASENAME="$(basename "$OPEN_PORTS_FILE")"
+    OPEN_PORTS_NAME="${OPEN_PORTS_BASENAME%%_*}"
+    FILENAME_PREFIX="${RESULTS_DIR}/${OPEN_PORTS_NAME}_${DATE}"
+
+    if [[ ! -f "$OPEN_PORTS_FILE" ]]; then
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "\n${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid open ports file '$OPEN_PORTS_FILE'."
+        else
+            echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid open ports file '$OPEN_PORTS_FILE'."
+        fi
+        exit 1 
+    fi
+
+    case "$MODE" in
+        paranoid)
+            NMAP_OPTS="-sS -T0 -g 53 --max-retries 1 --scan-delay 1s -Pn -n --script banner"
+            ;;
+        slow)
+            NMAP_OPTS="-sS -T1 -g 53 --max-retries 2 -Pn -n --script banner"
+            ;;
+        default)
+            NMAP_OPTS="-sS -T3 -g 53 -Pn -n --script banner"
+            ;;
+        fast)
+            NMAP_OPTS="-sS -T4 -g 53 --min-rate 1000 --max-retries 2 -Pn -n --script banner"
+            ;;
+        aggressive)
+            NMAP_OPTS="-sS -T5 --min-rate 3000 -g 53 --max-retries 1 --host-timeout 15m -Pn -n --script banner"
+            ;;
+        *)
+            if [[ -n "$MODE" ]]; then
+                if [[ "$DISABLE_COLOR" != "true" ]]; then
+                    echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid mode '$MODE'"
+                    echo "Use: paranoid, slow, default, fast, or aggressive"
+                else
+                    echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
+                    echo "Use: paranoid, slow, default, fast, or aggressive"
+                fi
+                exit 1
+            fi
+            ;;
+    esac
+
+    declare -A TARGETS
+
+    while read -r line; do
+        HOST="${line%%:*}"
+        PORT="${line##*:}"
+
+        if [[ -n "$HOST" && -n "$PORT" ]]; then
+            TARGETS["$HOST"]="${TARGETS[$HOST]},$PORT"
+        fi
+    done < "$OPEN_PORTS_FILE"
+
+    for HOST in "${!TARGETS[@]}"; do
+        PORTS="${TARGETS[$HOST]}"
+        PORTS="${PORTS#,}"
+
+        if [[ "$SILENT" != "true" ]]; then
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Starting version scan on host: ${GREEN}$HOST${NO_COLOR} ports: ${GREEN}$PORTS${NO_COLOR}\n"
+            else
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Starting version scan on host: $HOST ports: $PORTS\n"
+            fi
+
+            nmap $NMAP_OPTS -p "$PORTS" \
+            -oX "${FILENAME_PREFIX}_${HOST}_service_scan.xml" \
+            "$HOST"
+
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting version scan results for host: ${GREEN}$HOST${NO_COLOR}\n"
+            else
+                echo -e "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting version scan results for host: $HOST\n"
+            fi
+        else 
+            nmap $NMAP_OPTS -p "$PORTS" \
+            -oX "${FILENAME_PREFIX}_${HOST}_service_scan.xml" \
+            "$HOST" >/dev/null 2>&1
+        fi
+
+        xsltproc "${FILENAME_PREFIX}_${HOST}_service_scan.xml" -o "${FILENAME_PREFIX}_${HOST}_version_scan.html"
+    done
+
+    OUTPUT_FILE="${FILENAME_PREFIX}_services.txt"
+    > "$OUTPUT_FILE"
+
+    for xmlfile in "${FILENAME_PREFIX}"_*_service_scan.xml; do
+        if [[ $SILENT != "true" ]]; then
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Parsing services from file: ${GREEN}$xmlfile${NO_COLOR}\n"
+            else
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Parsing services from file: $xmlfile\n"
+            fi
+        fi
+        
+        xmlstarlet sel -t \
+            -m "//host" \
+            -m "ports/port[state/@state='open']" \
+                -v "concat(
+                    ../../address[@addrtype='ipv4']/@addr, ':',
+                    @portid, ':',
+                    service/@name, ':',
+                    string(service/@product), ':',
+                    string(service/@version), ':',
+                    string(service/@extrainfo), ':',
+                    string(service/@ostype), ':',
+                    string(script[@id='banner']/@output)
+                )" -n \
+            "$xmlfile" >> "$OUTPUT_FILE"
+    done
+
+    if [[ "$SILENT" != "true" ]]; then
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Consolidated service information saved to: ${GREEN}$OUTPUT_FILE${NO_COLOR}\n"
+        else
+            echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Consolidated service information saved to: $OUTPUT_FILE\n"
+        fi
+    fi
+}
+
 execute(){
     print_header
 
     if [[ -z "$OUTPUT" ]]; then
-        echo "Error: --output is required"
-        echo "Example: ./easymap.sh --target 172.16.109.131 --output ./output --mode aggressive"
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: --output is required"
+            echo "Example: easymap --target 172.16.109.131 --output ./output --mode aggressive"
+        else
+            echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Error: --output is required"
+            echo "Example: easymap --target 172.16.109.131 --output ./output --mode aggressive"
+        fi
         exit 1
     fi
 
@@ -321,7 +487,12 @@ execute(){
     local LIVE_HOSTS_FILE=$(get_live_hosts_file "$TARGET" "$OUTPUT")
 
     port_scan "$LIVE_HOSTS_FILE" "$MODE" "$OUTPUT" "$SILENT"
+
+    local OPEN_PORTS_FILE=$(get_open_ports_file "$TARGET" "$OUTPUT")
+
+    version_scan "$OPEN_PORTS_FILE" "$MODE" "$OUTPUT" "$SILENT"
 }
+
 
 main() {
     parse_args "$@"
