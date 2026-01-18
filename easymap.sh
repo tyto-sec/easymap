@@ -61,7 +61,7 @@ print_help() {
     fi
 
     printf "${opt}USAGE:${reset}\n"
-    printf "  ./main.sh [OPTIONS] <network/target>\n\n"
+    printf "  easymap [OPTIONS] --target <network/target/target list> --output <output folder> --mode <paranoid|slow|fast|aggressive>\n\n"
 
     printf "${opt}DESCRIPTION:${reset}\n"
     printf "  EasyMap is a wrapper designed to simplify multi-stage Nmap scans,\n"
@@ -78,20 +78,212 @@ print_help() {
 
 
     printf "${opt}EXAMPLES:${reset}\n"
-    printf "  ${cmd}easymap 192.168.1.0/24${reset}\n"
-    printf "  ${cmd}easymap --mode fast 10.0.0.1${reset}\n"
-    printf "  ${cmd}easymap --no-color --mode slow 172.16.0.0/16${reset}\n\n"
+    printf "  ${cmd}easymap --target 192.168.1.0/24${reset} --output ./output\n"
+    printf "  ${cmd}easymap --mode fast --target 10.0.0.1${reset} --output ./output\n"
+    printf "  ${cmd}easymap --no-color --mode slow --target 172.16.0.0/16${reset} --output ./output\n\n"
 }
 
 print_version() {
     echo "EasyMap version 2.0.0"
 }
 
+validate_target_type() {
+    local TARGET=$1
+    
+    # Verify if it's a network range in CIDR notation
+    if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+        return "network_range"
+    fi
+    
+    # Verify if it's a single IP
+    if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        return "single_ip"
+    fi
+    
+    # Verify if it's a list of IPs separated by commas
+    if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(,([0-9]{1,3}\.){3}[0-9]{1,3})+$ ]]; then
+        return "ip_list"
+    fi
+    
+    # Invalid format
+    return "invalid"
+}
+
+host_discovery() {
+    local TARGET=$1
+    local OUTPUT_DIR=$2
+    local SILENT=$3
+    
+    if validate_target_type "$TARGET" == "invalid"; then
+        echo "\nError: Invalid target format '$TARGET'."
+        exit 1
+    elif validate_target_type "$TARGET" == "network_range"; then
+        NETWORK=$TARGET
+        
+        local NETWORK_NAME=${NETWORK%%/*}
+        local DATE="$(date -I)"
+        local FILENAME_PREFIX="${OUTPUT_DIR}/${NETWORK_NAME}_${DATE}"
+        
+        if [[ "$SILENT" != "true" ]]; then
+            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on network range: $NETWORK"
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+            
+            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt"
+        else 
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
+        fi
+        
+        xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
+
+
+    elif validate_target_type "$TARGET" == "single_ip"; then
+        SINGLE_IP=$TARGET
+
+        local DATE="$(date -I)"
+        local FILENAME_PREFIX="${OUTPUT_DIR}/${SINGLE_IP}_${DATE}"
+        
+        if [[ "$SILENT" != "true" ]]; then
+            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP"
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+        else 
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
+        fi
+
+        xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
+
+    elif validate_target_type "$TARGET" == "ip_list"; then
+        IP_LIST=$TARGET
+
+        local OUTPUT_DIR=$2
+        local DATE="$(date -I)"
+        local FILENAME_PREFIX="${OUTPUT_DIR}/ip_list_${DATE}"
+        
+        if [[ "$SILENT" != "true" ]]; then
+            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST"
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+        else
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
+        fi
+
+        xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
+    fi
+
+
+}
+
+port_scan(){
+    HOSTS_FILE="$1"
+    MODE="$2"
+    OUTPUT_DIR="$3"
+    SILENT="$4"
+    HOSTS_FILE_BASENAME="$(basename "$HOSTS_FILE")"
+    HOSTS_FILE_NAME="${HOSTS_FILE_BASENAME%%_*}"
+    DATE="$(date -I)"
+    FILENAME_PREFIX="${OUTPUT_DIR}/${HOSTS_FILE_NAME}_${DATE}"
+    FILENAME="${FILENAME_PREFIX}_nmap_port_scan.xml"
+
+    if [[ ! -f "$HOSTS_FILE" ]]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid hosts file '$HOSTS_FILE'."
+        exit 1
+    fi
+
+    case "$MODE" in
+    paranoid)
+        # Extremely stealth mode: TCP only, very slow, source port spoofing
+        NMAP_OPTS="-sS -p- -T0 -g 53 --max-retries 1 --scan-delay 1s -Pn -n"
+        ;;
+    slow)
+        # Moderate stealth mode: TCP and top UDP ports, source port spoofing
+        NMAP_OPTS="-sS -p- -sU --top-ports 20 -T1 -g 53 --max-retries 2 -Pn -n"
+        ;;
+    default)
+        # Balanced mode: full TCP scan, moderate speed, source port spoofing
+        NMAP_OPTS="-sS -p- -sU --top-ports 20 -T3 -g 53 -Pn -n"
+        ;;
+    fast)
+        # Fast mode: full TCP scan with optimizations
+        NMAP_OPTS="-sS -p- -sU --top-ports 20 -T4 -g 53 --min-rate 1000 --max-retries 2 -Pn -n"
+        ;;
+    aggressive)
+        # Aggressive mode: full TCP + top UDP ports, maximum speed, source port spoofing
+        NMAP_OPTS="-sS -p- -sU --top-ports 100 -T5 --min-rate 3000 -g 53 --max-retries 1 --host-timeout 15m -Pn -n"
+        ;;
+    *)
+        if [[ -n "$MODE" ]]; then
+        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
+        echo "Valid modes: paranoid, slow, default, fast, aggressive"
+        exit 1
+        fi
+        ;;
+    esac
+
+    if [[ "$SILENT" != "true" ]]; then
+        nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE"
+    else
+        nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE" >/dev/null 2>&1
+    fi
+
+    xmlstarlet sel -t \
+    -m "//host[status/@state='up']" \
+        -m "ports/port[state/@state='open']" \
+        -v "concat(../../address[@addrtype='ipv4']/@addr, ':', @portid)" \
+        -n \
+    "${FILENAME_PREFIX}_nmap_port_discovery.xml" \
+    > "${FILENAME_PREFIX}_open_ports.txt"
+}
+
+get_live_hosts_file() {
+    local TARGET=$1
+    local OUTPUT=$2
+    local DATE="$(date -I)"
+    local TARGET_TYPE=$(validate_target_type "$TARGET")
+    local NETWORK_NAME=""
+    
+    if [ "$TARGET_TYPE" == "network_range" ]; then
+        NETWORK_NAME="${TARGET%%/*}"
+    elif [ "$TARGET_TYPE" == "single_ip" ]; then
+        NETWORK_NAME="$TARGET"
+    elif [ "$TARGET_TYPE" == "ip_list" ]; then
+        NETWORK_NAME="ip_list"
+    fi
+    
+    echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_live_hosts.txt"
+}
+
+execute(){
+    print_header
+
+    mkdir -p "$OUTPUT"
+
+    host_discovery "$TARGET" "$OUTPUT" "$SILENT"
+
+    local LIVE_HOSTS_FILE=$(get_live_hosts_file "$TARGET" "$OUTPUT")
+
+    port_scan "$LIVE_HOSTS_FILE" "$MODE" "$OUTPUT" "$SILENT"
+}
+
 main() {
     parse_args "$@"
     
+    # Se TARGET foi fornecido, executa o scan
+    if [[ -n "$TARGET" ]]; then
+        # Valida se OUTPUT foi fornecido
+        if [[ -z "$OUTPUT" ]]; then
+            echo "Error: --output is required"
+            print_help
+            exit 1
+        fi
+        
+        # Define MODE padrão se não fornecido
+        if [[ -z "$MODE" ]]; then
+            MODE="default"
+        fi
+        
+        execute
+        exit 0
+    fi
+    
     case "$COMMAND" in
-        "" )            print_help; exit 1 ;;
         help )         print_help; exit 0 ;;
         version )      print_version; exit 0 ;;
         * )            print_help; exit 1 ;;
