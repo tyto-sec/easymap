@@ -116,7 +116,11 @@ host_discovery() {
     local TARGET_TYPE=$(validate_target_type "$TARGET")
     
     if [ "$TARGET_TYPE" == "invalid" ]; then
-        echo "Error: Invalid target format '$TARGET'."
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid target format '$TARGET'."
+        else
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid target format '$TARGET'."
+        fi
         exit 1
     elif [ "$TARGET_TYPE" == "network_range" ]; then
         NETWORK=$TARGET
@@ -126,10 +130,18 @@ host_discovery() {
         local FILENAME_PREFIX="${OUTPUT_DIR}/${NETWORK_NAME}_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on network range: $NETWORK"
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Starting host discovery on network range: ${GREEN}$NETWORK${NO_COLOR}\n"
+            else
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting host discovery on network range: $NETWORK\n"
+            fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
             
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt"
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
+            else
+                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+            fi
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
         fi
@@ -144,8 +156,19 @@ host_discovery() {
         local FILENAME_PREFIX="${OUTPUT_DIR}/${SINGLE_IP}_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP"
+            
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Performing host discovery on single IP: ${GREEN}$SINGLE_IP${NO_COLOR}\n"
+            else
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP\n"
+            fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+        
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
+            else
+                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+            fi
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
         fi
@@ -160,8 +183,20 @@ host_discovery() {
         local FILENAME_PREFIX="${OUTPUT_DIR}/ip_list_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST"
+            
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Performing host discovery on IP list: ${GREEN}$IP_LIST${NO_COLOR}\n"
+            else
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST\n"
+            fi
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+        
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting live hosts to ${GREEN}${FILENAME_PREFIX}_live_hosts.txt${NO_COLOR}\n"
+            else
+                echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt\n"    
+            fi
+        
         else
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
         fi
@@ -183,7 +218,11 @@ port_scan(){
     FILENAME="${FILENAME_PREFIX}_nmap_port_scan.xml"
 
     if [[ ! -f "$HOSTS_FILE" ]]; then
-        echo "$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid hosts file '$HOSTS_FILE'."
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid hosts file '$HOSTS_FILE'."
+        else
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid hosts file '$HOSTS_FILE'."
+        fi
         exit 1
     fi
 
@@ -210,17 +249,33 @@ port_scan(){
         ;;
     *)
         if [[ -n "$MODE" ]]; then
-        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
-        echo "Valid modes: paranoid, slow, default, fast, aggressive"
-        exit 1
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${RED}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Error: Invalid mode '$MODE'"
+                echo -e "${YELLOW}Valid modes:${NO_COLOR} paranoid, slow, default, fast, aggressive"
+            else
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid mode '$MODE'"
+                echo "Valid modes: paranoid, slow, default, fast, aggressive"
+            fi
+            exit 1
         fi
         ;;
     esac
 
     if [[ "$SILENT" != "true" ]]; then
+        if [[ "$DISABLE_COLOR" != "true" ]]; then
+            echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Starting port scan in ${GREEN}$MODE${NO_COLOR} mode on hosts from file: ${GREEN}$HOSTS_FILE${NO_COLOR}\n"
+        else
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Starting port scan in $MODE mode on hosts from file: $HOSTS_FILE\n"
+        fi
         nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE"
     else
         nmap $NMAP_OPTS -oX "${FILENAME_PREFIX}_nmap_port_discovery.xml" -iL "$HOSTS_FILE" >/dev/null 2>&1
+    fi
+
+    if [[ "$DISABLE_COLOR" != "true" ]]; then
+        echo -e "\n${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Extracting open ports to ${GREEN}${FILENAME_PREFIX}_open_ports.txt${NO_COLOR}\n"
+    else
+        echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting open ports to ${FILENAME_PREFIX}_open_ports.txt\n"    
     fi
 
     xmlstarlet sel -t \
