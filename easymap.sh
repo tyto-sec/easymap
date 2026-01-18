@@ -15,20 +15,16 @@ parse_args() {
             -h|--help)    print_help; exit 0 ;;
             -v|--version) print_version; exit 0 ;;
             -s|--silent)   SILENT=true; shift ;;
-            -n|--no-color) DISABLE_COLOR=true; shift ;; # Ativa a desabilitação
-            -t|--target)   TARGET="$2"; shift 2 ;;
+            -n|--no-color) DISABLE_COLOR=true; shift ;;
             -m|--mode)     MODE="$2"; shift 2 ;;
-            -o|--output)   OUTPUT="$2"; shift 2 ;;
+            -o|--output)   OUTPUT="$2"; shift 2 ;; 
+            -t|--target)   TARGET="$2"; shift 2 ;;
             --)           shift; break ;;
             *)            print_help; exit 0 ;;
         esac
     done
 
-    COMMAND="$1"
-    shift
-    ARGS=("$@")
 }
-
 
 
 print_header() {
@@ -92,32 +88,37 @@ validate_target_type() {
     
     # Verify if it's a network range in CIDR notation
     if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
-        return "network_range"
+        echo "network_range"
+        return 0
     fi
     
     # Verify if it's a single IP
     if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-        return "single_ip"
+        echo "single_ip"
+        return 0
     fi
     
     # Verify if it's a list of IPs separated by commas
     if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(,([0-9]{1,3}\.){3}[0-9]{1,3})+$ ]]; then
-        return "ip_list"
+        echo "ip_list"
+        return 0
     fi
     
     # Invalid format
-    return "invalid"
+    echo "invalid"
+    return 1
 }
 
 host_discovery() {
     local TARGET=$1
     local OUTPUT_DIR=$2
     local SILENT=$3
+    local TARGET_TYPE=$(validate_target_type "$TARGET")
     
-    if validate_target_type "$TARGET" == "invalid"; then
-        echo "\nError: Invalid target format '$TARGET'."
+    if [ "$TARGET_TYPE" == "invalid" ]; then
+        echo "Error: Invalid target format '$TARGET'."
         exit 1
-    elif validate_target_type "$TARGET" == "network_range"; then
+    elif [ "$TARGET_TYPE" == "network_range" ]; then
         NETWORK=$TARGET
         
         local NETWORK_NAME=${NETWORK%%/*}
@@ -125,10 +126,10 @@ host_discovery() {
         local FILENAME_PREFIX="${OUTPUT_DIR}/${NETWORK_NAME}_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on network range: $NETWORK"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on network range: $NETWORK"
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
             
-            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Extracting live hosts to ${FILENAME_PREFIX}_live_hosts.txt"
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $NETWORK -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
         fi
@@ -136,14 +137,14 @@ host_discovery() {
         xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
 
 
-    elif validate_target_type "$TARGET" == "single_ip"; then
+    elif [ "$TARGET_TYPE" == "single_ip" ]; then
         SINGLE_IP=$TARGET
 
         local DATE="$(date -I)"
         local FILENAME_PREFIX="${OUTPUT_DIR}/${SINGLE_IP}_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on single IP: $SINGLE_IP"
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
         else 
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $SINGLE_IP -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
@@ -151,7 +152,7 @@ host_discovery() {
 
         xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
 
-    elif validate_target_type "$TARGET" == "ip_list"; then
+    elif [ "$TARGET_TYPE" == "ip_list" ]; then
         IP_LIST=$TARGET
 
         local OUTPUT_DIR=$2
@@ -159,7 +160,7 @@ host_discovery() {
         local FILENAME_PREFIX="${OUTPUT_DIR}/ip_list_${DATE}"
         
         if [[ "$SILENT" != "true" ]]; then
-            echo "\n[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery on IP list: $IP_LIST"
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
         else
             nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping $(echo $IP_LIST | tr ',' ' ') -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
@@ -167,7 +168,6 @@ host_discovery() {
 
         xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
     fi
-
 
 }
 
@@ -253,6 +253,12 @@ get_live_hosts_file() {
 execute(){
     print_header
 
+    if [[ -z "$OUTPUT" ]]; then
+        echo "Error: --output is required"
+        echo "Example: ./easymap.sh --target 172.16.109.131 --output ./output --mode aggressive"
+        exit 1
+    fi
+
     mkdir -p "$OUTPUT"
 
     host_discovery "$TARGET" "$OUTPUT" "$SILENT"
@@ -265,29 +271,13 @@ execute(){
 main() {
     parse_args "$@"
     
-    # Se TARGET foi fornecido, executa o scan
     if [[ -n "$TARGET" ]]; then
-        # Valida se OUTPUT foi fornecido
-        if [[ -z "$OUTPUT" ]]; then
-            echo "Error: --output is required"
-            print_help
-            exit 1
-        fi
-        
-        # Define MODE padrão se não fornecido
-        if [[ -z "$MODE" ]]; then
-            MODE="default"
-        fi
-        
         execute
         exit 0
     fi
     
-    case "$COMMAND" in
-        help )         print_help; exit 0 ;;
-        version )      print_version; exit 0 ;;
-        * )            print_help; exit 1 ;;
-    esac
+    print_help
+    exit 1
 }
 
 main "$@"
