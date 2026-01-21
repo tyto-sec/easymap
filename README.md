@@ -45,7 +45,6 @@
 ```bash
 sudo chmod +x easymap
 sudo cp easymap /usr/local/bin
-mkdir output
 ```
 <br>
 
