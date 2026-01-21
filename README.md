@@ -67,7 +67,7 @@ easymap [OPTIONS] --target <network/target/target list> --output <output folder>
 - `-m, --mode` - Select scan mode: `paranoid`, `slow`, `fast` or `aggressive`
 - `-o, --output` - Specify output folder
 - `-n, --no-color` - Disable colored output
-- `-s, --silent` - Run in silent mode (suppresses the banner logs)
+- `-s, --silent` - Run in silent mode (suppresses the banner and logs)
 
 
 <br>
@@ -122,6 +122,14 @@ sudo apt install nmap xmlstarlet xsltproc
 ```
 
 <br>
+
+## Screenshots
+
+<div>
+  <img src="/img/screenshot-1.png" alt="screenshot 1" width="49%" style="display:inline-block"/>
+  <img src="/img/screenshot-2.png" alt="screenshot 2" width="49%" style="display:inline-block"/>
+</div>
+
 
 ## Disclaimer
 
