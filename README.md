@@ -125,9 +125,9 @@ sudo apt install nmap xmlstarlet xsltproc
 
 ## Screenshots
 
-<div>
-  <img src="/img/screenshot-1.png" alt="screenshot 1" width="49%" style="display:inline-block"/>
-  <img src="/img/screenshot-2.png" alt="screenshot 2" width="49%" style="display:inline-block"/>
+<div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+  <img src="/img/screenshot-1.png" alt="screenshot 1" width="49%"/>
+  <img src="/img/screenshot-2.png" alt="screenshot 2" width="49%"/>
 </div>
 
 
