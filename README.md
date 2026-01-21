@@ -130,6 +130,7 @@ sudo apt install nmap xmlstarlet xsltproc
   <img src="/img/screenshot-2.png" alt="screenshot 2" width="49%"/>
 </div>
 
+<br>
 
 ## Disclaimer
 
