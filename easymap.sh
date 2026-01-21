@@ -85,6 +85,12 @@ print_version() {
 
 validate_target_type() {
     local TARGET=$1
+
+    # Check if it's a file
+    if [[ -f "$TARGET" ]]; then
+        echo "file_list"
+        return 0
+    fi
     
     # Verify if it's a network range in CIDR notation
     if [[ "$TARGET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
@@ -122,6 +128,26 @@ host_discovery() {
             echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Error: Invalid target format '$TARGET'."
         fi
         exit 1
+    
+    elif [ "$TARGET_TYPE" == "file_list" ]; then
+        local DATE="$(date -I)"
+        local BASE_NAME=$(basename "$TARGET" | cut -d. -f1)
+        local FILENAME_PREFIX="${OUTPUT_DIR}/${BASE_NAME}_${DATE}"
+        
+        if [[ "$SILENT" != "true" ]]; then
+            if [[ "$DISABLE_COLOR" != "true" ]]; then
+                echo -e "${YELLOW}[$(date +"%Y-%m-%d %H:%M:%S")]${NO_COLOR} Performing host discovery from file: ${GREEN}$TARGET${NO_COLOR}\n"
+            else
+                echo -e "[$(date +"%Y-%m-%d %H:%M:%S")] Performing host discovery from file: $TARGET\n"
+            fi
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping -iL "$TARGET" -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml"
+        else 
+            nmap -sn -PE -PP -PM -PS21,22,80,443 -PA21,22,80,443 -PU53,123,161 -PY80 --disable-arp-ping -iL "$TARGET" -oX "${FILENAME_PREFIX}_nmap_host_discovery.xml" >/dev/null 2>&1
+        fi
+        
+        xmlstarlet sel -t -m "//host[status/@state='up']" -v "address[@addrtype='ipv4']/@addr" -n "${FILENAME_PREFIX}_nmap_host_discovery.xml" > "${FILENAME_PREFIX}_live_hosts.txt"
+    
+    
     elif [ "$TARGET_TYPE" == "network_range" ]; then
         NETWORK=$TARGET
         
@@ -299,6 +325,8 @@ get_live_hosts_file() {
         NETWORK_NAME="$TARGET"
     elif [ "$TARGET_TYPE" == "ip_list" ]; then
         NETWORK_NAME="ip_list"
+    elif [ "$TARGET_TYPE" == "file_list" ]; then
+        NETWORK_NAME=$(basename "$TARGET" | cut -d. -f1)
     fi
     
     echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_live_hosts.txt"
@@ -335,6 +363,8 @@ get_open_ports_file() {
         NETWORK_NAME="$TARGET"
     elif [ "$TARGET_TYPE" == "ip_list" ]; then
         NETWORK_NAME="ip_list"
+    elif [ "$TARGET_TYPE" == "file_list" ]; then
+        NETWORK_NAME=$(basename "$TARGET" | cut -d. -f1)
     fi
     
     echo "${OUTPUT}/${NETWORK_NAME}_${DATE}_open_ports.txt"
