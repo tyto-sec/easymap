@@ -100,7 +100,7 @@ The Nmap options for each performance mode are the following:
 * **slow:** `-sS -p- -sU --top-ports 20 -T1 -g 53 --max-retries 2 -Pn -n`
 * **default:** `-sS -p- -sU --top-ports 20 -T3 -g 53 -Pn -n`
 * **fast:** `-sS -p- -sU --top-ports 20 -T4 -g 53 --min-rate 1000 --max-retries 2 -Pn -n`
-* **aggressive:** `sS -p- -sU --top-ports 100 -T5 --min-rate 3000 -g 53 --max-retries 1 --host-timeout 15m -Pn -n
+* **aggressive:** `sS -p- -sU --top-ports 100 -T5 --min-rate 3000 -g 53 --max-retries 1 --host-timeout 15m -Pn -n`
 
 <br>
 
