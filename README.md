@@ -52,7 +52,7 @@ sudo cp easymap /usr/local/bin
 ### Usage
 
 ```bash
-easymap [OPTIONS] --target <network/target/target list> --output <output folder> --mode <paranoid|slow|fast|aggressive>
+easymap [OPTIONS] --target <network/target/target list> --output <output folder> --mode <paranoid|slow|default|fast|aggressive>
 ```
 
 <br> 
@@ -64,7 +64,7 @@ easymap [OPTIONS] --target <network/target/target list> --output <output folder>
 - `-h, --help` - Show this help message and exit
 - `-v, --version` - Show version information
 - `-t, --target` - Specify target network or host
-- `-m, --mode` - Select scan mode: `paranoid`, `slow`, `fast` or `aggressive`
+- `-m, --mode` - Select scan mode: `paranoid`, `slow`, `default`, `fast` or `aggressive`
 - `-o, --output` - Specify output folder
 - `-n, --no-color` - Disable colored output
 - `-s, --silent` - Run in silent mode (suppresses the banner and logs)

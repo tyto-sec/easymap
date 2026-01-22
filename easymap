@@ -57,7 +57,7 @@ print_help() {
     fi
 
     printf "${opt}USAGE:${reset}\n"
-    printf "  easymap [OPTIONS] --target <network/target/target list> --output <output folder> --mode <paranoid|slow|fast|aggressive>\n\n"
+    printf "  easymap [OPTIONS] --target <network/target/target list> --output <output folder> --mode <paranoid|slow|default|fast|aggressive>\n\n"
 
     printf "${opt}DESCRIPTION:${reset}\n"
     printf "  EasyMap is a wrapper designed to simplify multi-stage Nmap scans,\n"
@@ -67,7 +67,7 @@ print_help() {
     printf "  ${cmd}-h, --help${reset}      Show this help message and exit\n"
     printf "  ${cmd}-v, --version${reset}   Show version information\n\n"
     printf "  ${cmd}-t, --target${reset}    Specify target network or host\n"
-    printf "  ${cmd}-m, --mode${reset}      Select scan mode: ${cmd}paranoid${reset}, ${cmd}slow${reset}, ${cmd}fast${reset} or ${cmd}aggressive${reset}\n"
+    printf "  ${cmd}-m, --mode${reset}      Select scan mode: ${cmd}paranoid${reset}, ${cmd}slow${reset}, ${cmd}default${reset}, ${cmd}fast${reset} or ${cmd}aggressive${reset}\n"
     printf "  ${cmd}-o, --output${reset}    Specify output folder\n"
     printf "  ${cmd}-n, --no-color${reset}  Disable colored output\n"
     printf "  ${cmd}-s, --silent${reset}    Run in silent mode (suppresses the banner logs)\n"
